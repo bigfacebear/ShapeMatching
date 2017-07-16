@@ -200,22 +200,28 @@ def rotation_invariant_net(name, images):
 
         # rotate each channel for DISCRETE_ORIENTATION_NUMBER times and form ROTATION_GROUP_NUMBER groups
         with tf.variable_scope('oriented_max_pool') as scope:
-            arr = []
+
+            groups = []
             ROTATE_ANGLE = 2 * np.pi / float(DISCRETE_ORIENTATION_NUMBER)
             for m in xrange(ROTATION_GROUP_NUMBER):
                 group_canonical = canonical_conv[:, :, :, m:m + 1]
+                rotations = []
                 for r in xrange(DISCRETE_ORIENTATION_NUMBER):
                     rot = tf.contrib.image.rotate(group_canonical,
                                                   r * ROTATE_ANGLE,
                                                   'BILINEAR')
-                    arr.append(rot)
-            concat = tf.concat(arr, axis=3)
+                    rotations.append(rot)
+                concat_rotations = tf.concat(rotations, axis=3)
+                rotation_reduce_max = tf.reduce_max(concat_rotations, axis=3, keep_dims=True)
+                groups.append(rotation_reduce_max)
             # shape: [batch_size, width, height, ROTATION_GROUP_NUMBER]
-            with tf.device('/cpu:0'):
-                oriented_max_pool = tf.nn.max_pool(concat,
-                                                   ksize=[1,1,1,DISCRETE_ORIENTATION_NUMBER],
-                                                   strides=[1,1,1,DISCRETE_ORIENTATION_NUMBER],
-                                                   padding='SAME')
+            oriented_max_pool = tf.concat(groups, axis=3)
+            print oriented_max_pool.get_shape()
+
+            # with tf.device('/cpu:0'):
+            # concat_var = tf.get_variable('concat_var', shape=concat.get_shape(), trainable=False)
+            # tf.assign(concat_var, concat)
+            # oriented_max_pool = tf.nn.max_pool(concat, ksize=[1,1,1,DISCRETE_ORIENTATION_NUMBER], strides=[1,1,1,DISCRETE_ORIENTATION_NUMBER], padding='SAME')
 
         with tf.variable_scope('spatial_max_pool') as scope:
             spatial_max_pool = tf.nn.max_pool(oriented_max_pool,

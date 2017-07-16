@@ -69,7 +69,9 @@ def train():
         threads = tf.train.start_queue_runners(coord=coord, sess=sess)
         print("Ok")
 
-
+        # summary_merged_op = tf.summary.merge_all()
+        # sess.run(summary_merged_op)
+        # summary_writer = tf.summary.FileWriter('./summary/', graph=sess.graph)
         # tf.group(enqueues, reenqueues)
 
         # enqueue everything as needed
@@ -81,6 +83,10 @@ def train():
         # print("Initial queue size: " + str(queue_size))
 
         for i in xrange(0, 10000):
+
+            # if i % 1000 == 0:
+            #     summary_str = sess.run(summary_merged_op)
+            #     summary_writer.add_summary(summary_str, i)
             # print("blah")
             _, my_loss = sess.run([train_op, loss])
             # sess.run([reenqueues])
