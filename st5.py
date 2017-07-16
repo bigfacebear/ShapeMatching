@@ -188,6 +188,7 @@ def rotation_invariant_net(name, images):
     DISCRETE_ORIENTATION_NUMBER = 16
 
     with tf.variable_scope(name):
+        # a common convolution operation
         with tf.variable_scope('canonical_conv') as scope:
             kernel = _variable_with_weight_decay('weights',
                                                  shape=[31, 31, 3, ROTATION_GROUP_NUMBER],  # the size of the kernel is larger than those are typically used
@@ -197,6 +198,7 @@ def rotation_invariant_net(name, images):
             biases = _variable_on_cpu('biases', [ROTATION_GROUP_NUMBER], tf.constant_initializer(1e-2))
             canonical_conv = tf.nn.bias_add(conv, biases)
 
+        # rotate each channel for DISCRETE_ORIENTATION_NUMBER times and form ROTATION_GROUP_NUMBER groups
         with tf.variable_scope('oriented_max_pool') as scope:
             arr = []
             ROTATE_ANGLE = 2 * np.pi / float(DISCRETE_ORIENTATION_NUMBER)
