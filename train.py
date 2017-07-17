@@ -42,6 +42,7 @@ def train():
 
         # Calculate loss.
         loss = st5.loss(logits, labels_batch)
+        sum_loss = tf.summary.scalar('loss', loss)
 
         # Build a Graph that trains the model with one batch of examples and
         # updates the model parameters.
@@ -50,6 +51,8 @@ def train():
         print("Actually running now")
 
         saver = tf.train.Saver(var_list=(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
+        summary_op_merged = tf.summary.merge_all()
+        train_writer = tf.summary.FileWriter(st5.FLAGS.train_dir, sess.graph)
 
         if FLAGS.RESTORE:
             print("Restoring...")
@@ -82,7 +85,7 @@ def train():
         # queue_size = sess.run(filequeue.size())
         # print("Initial queue size: " + str(queue_size))
 
-        for i in xrange(0, 10000):
+        for i in xrange(0, 2000):
 
             # if i % 1000 == 0:
             #     summary_str = sess.run(summary_merged_op)
@@ -101,12 +104,18 @@ def train():
 
             print('Step: %d     Cross entropy loss: % 6.2f' % (i, ml))
 
-            if i % 1000 == 0 and i != 0:  # Every 1000 steps, save the results and send an email
+            if i % 100 == 0:
+                sum_str = sess.run(sum_loss)
+                train_writer.add_summary(sum_str, i)
+
+            if i % 100 == 0 and i != 0:  # Every 1000 steps, save the results and send an email
                 print("NS")
 
                 notify("Current cross-entropy loss: " + str(ml) + ".", subject="Running stats [step " + str(i) + "]")
 
-                saver.save(sess, "summaries/netstate/saved_state", global_step=i)
+                saver.save(sess, "summaries/netstate/saved_state")#, global_step=i)
+                summary_str = sess.run(summary_op_merged)
+                train_writer.add_summary(summary_str, i)
                 # saver.save(sess, "summaries/netstate/saved_state/model.ckpt")
 
             if np.isnan(ml):
@@ -181,7 +190,10 @@ def main(argv=None):
     if tf.gfile.Exists(FLAGS.train_dir):
         tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)
-    tf.gfile.MakeDirs("summaries/netstate")
+    summary_dir = 'summaries/netstate'
+    if tf.gfile.Exists(summary_dir):
+        tf.gfile.DeleteRecursively(summary_dir)
+    tf.gfile.MakeDirs(summary_dir)
     print("Done.")
 
     # Get images and labels for MSHAPES

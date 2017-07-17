@@ -141,7 +141,27 @@ def inputs(eval_data, data_dir, batch_size):
         #     a = filequeue.enqueue([lock, key])
         #     enqueues.append(a)
 
-        num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
+        beg = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
+        end = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN + NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+        for i in xrange(beg, end, 2):  # TODO: First of all, this should go to (at least) 30k.
+            # The reason it's at 5000 is that currently, we're
+            # individually enqueueing images. Instead, we should
+            # use enqueue_many with an inline for loop, which
+            # should building up the queue much faster.
+
+            # print_progress_bar(i + 1, NUM_EXAMPLES_PER_EPOCH_FOR_EVAL, prefix='Progress:', suffix='Complete', length=50,
+            #                    fill='█')
+
+            lock = os.path.join(data_dir, 'images/%d_L.png' % i)
+            key_good = os.path.join(data_dir, 'images/%d_K.png' % i)
+            key_bad = os.path.join(data_dir, 'images/%d_K.png' % (i + 1))
+
+            lock_files.append(lock)
+            key_files_good.append(key_good)
+            key_files_bad.append(key_bad)
+
+        num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+        print("Ok")
 
 
     # print("Lock files: ")
@@ -262,7 +282,7 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
             capacity=min_queue_examples + 6 * batch_size)
 
     # Display the training images in the visualizer.
-    tf.summary.image('images', images)
+    # tf.summary.image('images', images)
 
     print("Images dimensions: ", images.get_shape())
 
