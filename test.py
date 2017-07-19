@@ -1,7 +1,10 @@
 import tensorflow as tf
 import numpy as np
+import sys
 from PIL import Image
 import matplotlib.pyplot as plt
+import sm_input
+import FLAGS
 
 # print("Hello")
 #
@@ -76,4 +79,10 @@ def testImshow():
     # plt.imshow(out)
     # plt.show()
 
-testImshow()
+def test():
+    a = None
+    if True:
+        a = 1
+    print a
+
+sm_input.inputs(False, FLAGS.data_dir, FLAGS.batch_size)

@@ -16,7 +16,6 @@ from PIL import Image
 from six.moves import urllib as smurllib
 
 import FLAGS
-import PARAMS
 
 
 
@@ -74,7 +73,7 @@ def maybe_download_and_extract():
     dest_directory = FLAGS.data_dir
     if not os.path.exists(dest_directory):
         os.makedirs(dest_directory)
-    filename = PARAMS.DATA_URL.split('/')[-1]
+    filename = FLAGS.DATA_URL.split('/')[-1]
     filepath = os.path.join(dest_directory, filename)
     if not os.path.exists(filepath):
         print_progress_bar(0, 100,
@@ -88,7 +87,7 @@ def maybe_download_and_extract():
                                fill='█')
 
 
-        filepath, _ = smurllib.request.urlretrieve(PARAMS.DATA_URL, filepath, _progress)
+        filepath, _ = smurllib.request.urlretrieve(FLAGS.DATA_URL, filepath, _progress)
         print()
         statinfo = os.stat(filepath)
         print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
@@ -119,7 +118,7 @@ def verify_dataset():
 
     # print("w, h: " + str(width) + ", " + str(height))
 
-    if not (width == PARAMS.IMAGE_SIZE and height == PARAMS.IMAGE_SIZE):
+    if not (width == FLAGS.IMAGE_SIZE and height == FLAGS.IMAGE_SIZE):
         raise Exception("Dataset appears to have been corrupted. (Check " + where + ")")
 
 
