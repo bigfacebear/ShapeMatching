@@ -5,3 +5,4 @@ summaries/
 *.pyc
 testSummary/
 MSHAPES_train/
+shape_generation/*.pyc
