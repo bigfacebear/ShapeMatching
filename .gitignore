@@ -4,5 +4,5 @@ summaries/
 .idea/
 *.pyc
 testSummary/
-MSHAPES_train/
+MSHAPES*/
 shape_generation/*.pyc

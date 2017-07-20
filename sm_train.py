@@ -33,46 +33,84 @@ def train():
 
         # Calculate loss.
         loss = sm.loss(logits, labels)
+        tf.summary.scalar('loss', loss)
 
         # Build a Graph that trains the model with one batch of examples and
         # updates the model parameters.
         train_op = sm.train(loss, global_step)
 
-        class _LoggerHook(tf.train.SessionRunHook):
-            """Logs loss and runtime."""
+        saver = tf.train.Saver(var_list=(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
+        summary_op_merged = tf.summary.merge_all()
 
-            def begin(self):
-                self._step = -1
-                self._start_time = time.time()
+        with tf.Session() as sess:
+            train_writer = tf.summary.FileWriter(sm.FLAGS.train_dir, sess.graph)
+            tf.set_random_seed(42)
+            tf.global_variables_initializer().run()
 
-            def before_run(self, run_context):
-                self._step += 1
-                return tf.train.SessionRunArgs(loss)
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(coord=coord, sess=sess)
 
-            def after_run(self, run_context, run_values):
-                if self._step % FLAGS.log_frequency == 0:
+            start_time = time.time()
+            for i in xrange(FLAGS.max_steps):
+                _, my_loss = sess.run([train_op, loss])
+                ml = np.array(my_loss)
+
+                if (i + 1) % FLAGS.log_frequency == 0 and i != 0:  # Every 1000 steps, save the results and send an email
                     current_time = time.time()
-                    duration = current_time - self._start_time
-                    self._start_time = current_time
+                    duration = current_time - start_time
+                    start_time = current_time
 
-                    loss_value = run_values.results
+                    loss_value = ml
                     examples_per_sec = FLAGS.log_frequency * FLAGS.batch_size / duration
                     sec_per_batch = float(duration / FLAGS.log_frequency)
 
                     format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
                                   'sec/batch)')
-                    print(format_str % (datetime.now(), self._step, loss_value,
+                    print(format_str % (datetime.now(), (i + 1), loss_value,
                                         examples_per_sec, sec_per_batch))
 
-        with tf.train.MonitoredTrainingSession(
-            checkpoint_dir=FLAGS.train_dir,
-            hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
-                   tf.train.NanTensorHook(loss),
-                   _LoggerHook()],
-            config=tf.ConfigProto(
-                log_device_placement=FLAGS.log_device_placement)) as mon_sess:
-            while not mon_sess.should_stop():
-                mon_sess.run(train_op)
+                    saver.save(sess, './MSHAPES_train/MSHAPES_train')  # , global_step=i)
+                    summary_str = sess.run(summary_op_merged)
+                    train_writer.add_summary(summary_str, i)
+
+            coord.request_stop()
+            coord.join(threads)
+
+        # class _LoggerHook(tf.train.SessionRunHook):
+        #     """Logs loss and runtime."""
+        #
+        #     def begin(self):
+        #         self._step = -1
+        #         self._start_time = time.time()
+        #
+        #     def before_run(self, run_context):
+        #         self._step += 1
+        #         return tf.train.SessionRunArgs(loss)
+        #
+        #     def after_run(self, run_context, run_values):
+        #         if self._step % FLAGS.log_frequency == 0:
+        #             current_time = time.time()
+        #             duration = current_time - self._start_time
+        #             self._start_time = current_time
+        #
+        #             loss_value = run_values.results
+        #             examples_per_sec = FLAGS.log_frequency * FLAGS.batch_size / duration
+        #             sec_per_batch = float(duration / FLAGS.log_frequency)
+        #
+        #             format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
+        #                           'sec/batch)')
+        #             print(format_str % (datetime.now(), self._step, loss_value,
+        #                                 examples_per_sec, sec_per_batch))
+        #
+        # with tf.train.MonitoredTrainingSession(
+        #     checkpoint_dir=FLAGS.train_dir,
+        #     hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
+        #            tf.train.NanTensorHook(loss),
+        #            _LoggerHook()],
+        #     config=tf.ConfigProto(
+        #         log_device_placement=FLAGS.log_device_placement)) as mon_sess:
+        #     while not mon_sess.should_stop():
+        #         mon_sess.run(train_op)
 
         print('Finished.')
 

@@ -41,7 +41,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-import st5
+import sm
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -49,11 +49,11 @@ tf.app.flags.DEFINE_string('eval_dir', './st5_eval',
                            """Directory where to write event logs.""")
 tf.app.flags.DEFINE_string('eval_data', 'eval',
                            """Either 'test' or 'train_eval'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', './summaries/netstate',
+tf.app.flags.DEFINE_string('checkpoint_dir', './MSHAPES_train',
                            """Directory where to read model checkpoints.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 20,
                             """How often to run the eval.""")
-tf.app.flags.DEFINE_integer('num_examples', 10000,
+tf.app.flags.DEFINE_integer('num_examples', 20000,
                             """Number of examples to run.""")
 tf.app.flags.DEFINE_boolean('run_once', True,
                          """Whether to run eval only once.""")
@@ -72,6 +72,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
   """
   with tf.Session() as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+    print("checkpoint dir =", ckpt.model_checkpoint_path)
     if ckpt and ckpt.model_checkpoint_path:
       # Restores from checkpoint
       saver.restore(sess, ckpt.model_checkpoint_path)
@@ -117,24 +118,24 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 
 
 def evaluate():
-  """Eval CIFAR-10 for a number of steps."""
+  """Eval MSHAPES for a number of steps."""
   with tf.Graph().as_default() as g:
     # Get images and labels for CIFAR-10.
     eval_data = FLAGS.eval_data == 'test'
-    queue, images, labels = st5.inputs(eval_data=True)
+    images, labels = sm.inputs(eval_data=True)
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = st5.inference(images)
+    logits = sm.inference(images)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)
 
     # Restore the moving average version of the learned variables for eval.
-    variable_averages = tf.train.ExponentialMovingAverage(
-        st5.MOVING_AVERAGE_DECAY)
-    variables_to_restore = variable_averages.variables_to_restore()
-    saver = tf.train.Saver(variables_to_restore)
+    # variable_averages = tf.train.ExponentialMovingAverage(
+    #     sm.MOVING_AVERAGE_DECAY)
+    # variables_to_restore = variable_averages.variables_to_restore()
+    # saver = tf.train.Saver(variables_to_restore)
     saver = tf.train.Saver()
 
     # Build the summary operation based on the TF collection of Summaries.

@@ -79,10 +79,17 @@ def testImshow():
     # plt.imshow(out)
     # plt.show()
 
-def test():
-    a = None
-    if True:
-        a = 1
-    print a
+def testCross():
 
-sm_input.inputs(False, FLAGS.data_dir, FLAGS.batch_size)
+
+    with tf.device('/cpu:0'):
+        a = tf.Variable(tf.truncated_normal([2,4,4,3]), dtype=tf.float32)
+        b = tf.Variable(tf.truncated_normal([2,4,4,3]), dtype=tf.float32)
+        c = tf.cross(a, b)
+        init_op = tf.global_variables_initializer()
+        with tf.Session() as sess:
+            print c.get_shape()
+            sess.run(init_op)
+            print sess.run(c)
+
+testCross()
