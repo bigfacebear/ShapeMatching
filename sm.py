@@ -69,7 +69,7 @@ def rotation_invariant_net(name, images):
 
     ROTATION_GROUP_NUMBER = 8
     DISCRETE_ORIENTATION_NUMBER = 16
-    filter_size = 31
+    filter_size = 27
 
     with tf.variable_scope(name):
         # a common convolution operation

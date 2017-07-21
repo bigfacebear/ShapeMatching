@@ -45,8 +45,8 @@ RESTORE_FROM = 'summaries/netstate/saved_state-3000'
 #   0: CIFAR-10 model
 #   1: preprocess input images respectively
 #   2: preprocess input images respectively with rotation invariance
-model_version = 3
+model_version = 2
 
 # Architecture parameters
-CONVOLUTIONAL_LAYER_DEPTH = 32
+CONVOLUTIONAL_LAYER_DEPTH = 16
 KEEP_PROB = 0.5
