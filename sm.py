@@ -118,8 +118,8 @@ def input_process(name, images):
     :param input_image: tensor_shape = [batch_size, width, height, 3]
     :return: feature logits
     """
-    CONV1_DEPTH = 64
-    CONV2_DEPTH = 64
+    CONV1_DEPTH = FLAGS.CONVOLUTIONAL_LAYER_DEPTH
+    CONV2_DEPTH = FLAGS.CONVOLUTIONAL_LAYER_DEPTH
 
     channel_num = images.get_shape().as_list()[3]
     # conv1
@@ -135,12 +135,12 @@ def input_process(name, images):
             conv1 = tf.nn.relu(pre_activation, name=scope.name)
             _activation_summary(conv1)
 
-        # pool1
-        pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
-                               padding='SAME', name='pool')
-        # norm1
-        norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                          name='norm')
+            # pool1
+            pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
+                                   padding='SAME', name='pool')
+            # norm1
+            norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                              name='norm')
 
         # conv2
         with tf.variable_scope('conv2') as scope:
@@ -154,12 +154,12 @@ def input_process(name, images):
             conv2 = tf.nn.relu(pre_activation, name=scope.name)
             _activation_summary(conv2)
 
-        # norm2
-        norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                          name='norm1')
-        # pool2
-        pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
-                               strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+            # norm2
+            norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                              name='norm1')
+            # pool2
+            pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
+                                   strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
     return pool2
 
@@ -170,7 +170,7 @@ def input_process_with_rotation(name, images):
 
 
 # Full connection layer
-def full_connection_layer(features):
+def full_connection_layer(features, eval=False):
     FC1_NUM = 384
     FC2_NUM = 192
     # FC1
@@ -183,7 +183,8 @@ def full_connection_layer(features):
         biases = _variable_on_cpu('biases', [FC1_NUM], tf.constant_initializer(0.1))
         fc1 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
         _activation_summary(fc1)
-        fc1_dropout = tf.nn.dropout(fc1, keep_prob=0.5)
+        keep_prob = FLAGS.KEEP_PROB if eval else 1.0
+        fc1_dropout = tf.nn.dropout(fc1, keep_prob=keep_prob)
 
     # FC2
     with tf.variable_scope('FC2') as scope:
@@ -208,7 +209,7 @@ def full_connection_layer(features):
     return softmax_linear
 
 
-def inference(images):
+def inference(images, eval=False):
     """
     Build the model in which firstly extract features from both input images first. Then concat them together
 
@@ -223,50 +224,64 @@ def inference(images):
         3: inference_v3
     }
 
-    return inference_model[FLAGS.model_version](images)
+    return inference_model[FLAGS.model_version](images, eval)
 
 
-# Version 3, cross product two input images
-def inference_v3(images):
+def inference_v3(images, eval=False):
+    """
+    Version 3, cross product two input images
+
+    :param images: returned from inputs(). shape=[batch_size, IMAGE_SIZE, IMAGE_SIZE, 6]
+    :param eval: if evaluate
+    :return: logits
+    """
     with tf.variable_scope('cross_prod') as scope:
         cross_prod = tf.cross(images[:,:,:,:3], images[:,:,:,3:])
-    return inference_v0(cross_prod)
+    return inference_v0(cross_prod, eval)
 
 
-# Version 2, preprocess two input images with rotation variance respectively.
-def inference_v2(images):
+def inference_v2(images, eval=False):
+    """
+    Version 2, preprocess two input images with rotation variance respectively.
+
+    :param images: returned from inputs(). shape=[batch_size, IMAGE_SIZE, IMAGE_SIZE, 6]
+    :param eval: if evaluate
+    :return: logits
+    """
     with tf.variable_scope('input') as scope:
         input_feature_L = input_process_with_rotation('input_L', images[:,:,:,:3])
         input_feature_K = input_process_with_rotation('input_K', images[:,:,:,3:])
         sh = images.get_shape().as_list()
         input_concat = tf.concat([input_feature_L, input_feature_K], axis=len(sh)-1)
 
-    return full_connection_layer(input_concat)
+    return full_connection_layer(input_concat, eval)
 
 
-# Version 1, preprocess two input images respectively.
-def inference_v1(images):
+def inference_v1(images, eval=False):
+    """
+    Version 1, preprocess two input images respectively.
+
+    :param images: returned from inputs(). shape=[batch_size, IMAGE_SIZE, IMAGE_SIZE, 6]
+    :param eval: if evaluate
+    :return: logits
+    """
     with tf.variable_scope('input') as scope:
         input_feature_L = input_process('input_L', images[:,:,:,:3])
         input_feature_K = input_process('input_K', images[:,:,:,3:])
         sh = images.get_shape().as_list()
         input_concat = tf.concat([input_feature_L, input_feature_K], axis=len(sh)-1)
 
-    return full_connection_layer(input_concat)
+    return full_connection_layer(input_concat, eval)
 
 
-# Version 0, CIFAR-10 model.
-def inference_v0(images):
-    """Build the CIFAR-10 model.
-    Args:
-      images: Images returned from distorted_inputs() or inputs().
-    Returns:
-      Logits.
+def inference_v0(images, eval=False):
     """
-    # We instantiate all variables using tf.get_variable() instead of
-    # tf.Variable() in order to share variables across multiple GPU training runs.
-    # If we only ran this model on a single GPU, we could simplify this function
-    # by replacing all instances of tf.get_variable() with tf.Variable().
+    Version 0, CIFAR-10 model.
+
+    :param images: returned from inputs(). shape=[batch_size, IMAGE_SIZE, IMAGE_SIZE, 6]
+    :param eval: if evaluate
+    :return: logits
+    """
 
     CONV1_DEPTH = 64
     CONV2_DEPTH = 64
@@ -284,12 +299,12 @@ def inference_v0(images):
         conv1 = tf.nn.relu(pre_activation, name=scope.name)
         _activation_summary(conv1)
 
-    # pool1
-    pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool1')
-    # norm1
-    norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                      name='norm1')
+        # pool1
+        pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
+                               padding='SAME', name='pool1')
+        # norm1
+        norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                          name='norm1')
 
     # conv2
     with tf.variable_scope('conv2') as scope:
@@ -303,14 +318,14 @@ def inference_v0(images):
         conv2 = tf.nn.relu(pre_activation, name=scope.name)
         _activation_summary(conv2)
 
-    # norm2
-    norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                      name='norm2')
-    # pool2
-    pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
-                           strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+        # norm2
+        norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                          name='norm2')
+        # pool2
+        pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
+                               strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
-    return full_connection_layer(pool2)
+    return full_connection_layer(pool2, eval)
 
 
 
@@ -339,15 +354,14 @@ def loss(logits, labels):
 
 
 def train(total_loss, global_step):
-    """Train CIFAR-10 model.
+    """
+    Train MSHAPES model.
     Create an optimizer and apply to all trainable variables. Add moving
     average for all trainable variables.
-    Args:
-      total_loss: Total loss from loss().
-      global_step: Integer Variable counting the number of training steps
-        processed.
-    Returns:
-      train_op: op for training.
+
+    :param total_loss: Total loss from loss().
+    :param global_step: Integer Variable counting the number of training steps processed.
+    :return: op for training.
     """
     # Variables that affect learning rate.
     with tf.variable_scope('train_op'):

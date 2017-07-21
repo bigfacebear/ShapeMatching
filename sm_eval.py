@@ -45,7 +45,7 @@ import sm
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('eval_dir', './st5_eval',
+tf.app.flags.DEFINE_string('eval_dir', './sm_eval',
                            """Directory where to write event logs.""")
 tf.app.flags.DEFINE_string('eval_data', 'eval',
                            """Either 'test' or 'train_eval'.""")
@@ -126,7 +126,7 @@ def evaluate():
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = sm.inference(images)
+    logits = sm.inference(images, eval=True)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)

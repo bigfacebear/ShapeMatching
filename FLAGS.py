@@ -8,7 +8,7 @@ use_fp16 = False
 # Directory where to write event logs.
 train_dir = './MSHAPES_train'
 # Number of batches to run.
-max_steps = 100000 #1000000
+max_steps = 50000 #1000000
 # Whether to log device placement.
 log_device_placement = False
 # How often to log results to the console.
@@ -45,4 +45,8 @@ RESTORE_FROM = 'summaries/netstate/saved_state-3000'
 #   0: CIFAR-10 model
 #   1: preprocess input images respectively
 #   2: preprocess input images respectively with rotation invariance
-model_version = 1
+model_version = 3
+
+# Architecture parameters
+CONVOLUTIONAL_LAYER_DEPTH = 32
+KEEP_PROB = 0.5

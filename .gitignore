@@ -6,3 +6,4 @@ summaries/
 testSummary/
 MSHAPES*/
 shape_generation/*.pyc
+sm_eval/
