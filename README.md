@@ -14,7 +14,7 @@
 
 ​	The precision of this network is around **94.4%**, which is the worst.
 
-![V0 CIFAR-10](http://github.com/bigfacebear/ShapeMatching/raw/master/img/arch_v0.png)
+![V0 CIFAR-10](img/arch_v0.png)
 
 ### Version 1 Process inputs respectively
 
@@ -29,7 +29,7 @@
 
 
 
-![V1](http://github.com/bigfacebear/ShapeMatching/raw/master/img/arch_v1.png)
+![V1](img/arch_v1.png)
 
 ### Version 2 Process inputs with rotation invariance respectively
 
@@ -37,13 +37,13 @@
 
 ​	This structure is not tested, because the the training speed is slow and I think the performance is hardly good. But it's quite a good thinking. Instead of using distorted(rotated) input to help the network get used to the rotation of inputs, we can let the network structure itself learn the distortion as well.
 
-![V1](http://github.com/bigfacebear/ShapeMatching/raw/master/img/arch_v2.png)
+![V1](img/arch_v2.png)
 
 ### Version 3 Cross product input images
 
 ​	It's a thinking of how to let the two inputs relate to each other - by cross production. However, this network won't converge in practice.
 
-![V1](http://github.com/bigfacebear/ShapeMatching/raw/master/img/arch_v3.png)
+![V1](img/arch_v3.png)
 
 
 
